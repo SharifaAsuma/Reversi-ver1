@@ -1,0 +1,144 @@
+from IPython.display import HTML
+
+html_code = '''
+<style>
+  body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+  #game-container { display: flex; flex-direction: column; align-items: center; }
+  #board { display: grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); border: 2px solid #333; margin-top: 20px; }
+  .cell { width: 50px; height: 50px; background-color: #008000; border: 1px solid #222; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+  .piece { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 0.8em; }
+  .black { background-color: black; border: 2px solid #555; color: white; }
+  .white { background-color: white; border: 2px solid #AAA; color: black; }
+  #status { margin-top: 10px; font-size: 1.2em; }
+</style>
+
+<div id="game-container">
+  <h1>オセロゲーム</h1>
+  <div id="status">現在のターン: 黒</div>
+  <div id="board"></div>
+</div>
+
+<script>
+  const boardElement = document.getElementById('board');
+  const statusElement = document.getElementById('status');
+  const board = Array(8).fill(null).map(() => Array(8).fill(0)); // 0: empty, 1: black, -1: white
+  let currentPlayer = 1; // 1 for black, -1 for white
+
+  // Directions for checking neighboring cells (8 directions)
+  const dr = [-1, -1, -1, 0, 0, 1, 1, 1];
+  const dc = [-1, 0, 1, -1, 1, -1, 0, 1];
+
+  function initBoard() {
+    boardElement.innerHTML = ''; // Clear existing board
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.dataset.row = r;
+        cell.dataset.col = c;
+        cell.addEventListener('click', handleCellClick);
+        boardElement.appendChild(cell);
+      }
+    }
+    // Initial setup
+    placePiece(3, 3, -1); // White
+    placePiece(3, 4, 1);  // Black
+    placePiece(4, 3, 1);  // Black
+    placePiece(4, 4, -1); // White
+    updateStatus();
+  }
+
+  function placePiece(row, col, player) {
+    const cellIndex = row * 8 + col;
+    const cellElement = boardElement.children[cellIndex];
+    if (cellElement) {
+      cellElement.innerHTML = `<div class="piece ${player === 1 ? 'black' : 'white'}"></div>`;
+      board[row][col] = player;
+    }
+  }
+
+  // Checks if a move is valid for the current player at (row, col)
+  function isValidMove(row, col, player) {
+    if (board[row][col] !== 0) return false; // Cell must be empty
+
+    let canFlip = false;
+    for (let i = 0; i < 8; i++) {
+      let r = row + dr[i];
+      let c = col + dc[i];
+      let hasOpponentPiece = false;
+
+      // Check if there's an opponent's piece in this direction
+      while (r >= 0 && r < 8 && c >= 0 && c < 8 && board[r][c] === -player) {
+        hasOpponentPiece = true;
+        r += dr[i];
+        c += dc[i];
+      }
+
+      // If an opponent's piece was found, check if it's followed by player's piece
+      if (hasOpponentPiece && r >= 0 && r < 8 && c >= 0 && c < 8 && board[r][c] === player) {
+        canFlip = true;
+        break; // Found at least one direction to flip, so it's a valid move
+      }
+    }
+    return canFlip;
+  }
+
+  // Gets all pieces that would be flipped by placing a piece at (row, col)
+  function getFlippedPieces(row, col, player) {
+    const toFlip = [];
+    for (let i = 0; i < 8; i++) {
+      let r = row + dr[i];
+      let c = col + dc[i];
+      const currentDirFlipped = [];
+
+      while (r >= 0 && r < 8 && c >= 0 && c < 8 && board[r][c] === -player) {
+        currentDirFlipped.push({ row: r, col: c });
+        r += dr[i];
+        c += dc[i];
+      }
+
+      if (currentDirFlipped.length > 0 && r >= 0 && r < 8 && c >= 0 && c < 8 && board[r][c] === player) {
+        toFlip.push(...currentDirFlipped);
+      }
+    }
+    return toFlip;
+  }
+
+  function handleCellClick(event) {
+    // Ensure the click was on a cell, not a piece inside it
+    let targetCell = event.target;
+    if (!targetCell.classList.contains('cell')) {
+        targetCell = targetCell.closest('.cell');
+    }
+    if (!targetCell) return; // If it's not a cell, ignore
+
+    const row = parseInt(targetCell.dataset.row);
+    const col = parseInt(targetCell.dataset.col);
+
+    if (isValidMove(row, col, currentPlayer)) {
+      const flipped = getFlippedPieces(row, col, currentPlayer);
+
+      // Place the current player's piece
+      placePiece(row, col, currentPlayer);
+
+      // Flip the captured pieces
+      flipped.forEach(p => {
+        placePiece(p.row, p.col, currentPlayer);
+      });
+
+      currentPlayer = -currentPlayer; // Switch player
+      updateStatus();
+    } else {
+      alert('そこには置けません。有効な手ではありません。');
+    }
+  }
+
+  function updateStatus() {
+    statusElement.textContent = `現在のターン: ${currentPlayer === 1 ? '黒' : '白'}`;
+  }
+
+  initBoard(); // Initialize the board when the script loads
+</script>
+'''
+
+display(HTML(html_code))
