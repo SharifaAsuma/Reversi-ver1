@@ -1,0 +1,3 @@
+【Reversi-ver1】
+
+オセロアプリver1
